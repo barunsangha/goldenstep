@@ -249,3 +249,89 @@ begin
     where r.flagged = true;
 end;
 $$;
+create or replace function create_league(
+  p_name text,
+  p_stake_amount numeric,
+  p_created_by uuid,
+  p_max_members int default 10
+)
+returns table (
+  out_league_id uuid,
+  out_name text,
+  out_invite_code text,
+  out_stake_amount numeric
+)
+language plpgsql
+as $$
+declare
+  v_code text;
+  v_league_id uuid;
+begin
+  -- generate a unique 6-character invite code, retry if it collides
+  loop
+    v_code := upper(substring(md5(random()::text) from 1 for 6));
+    exit when not exists (select 1 from leagues where invite_code = v_code);
+  end loop;
+
+  insert into leagues (name, invite_code, stake_amount, created_by, max_members)
+  values (p_name, v_code, p_stake_amount, p_created_by, p_max_members)
+  returning id into v_league_id;
+
+  -- creator automatically joins their own league
+  insert into league_members (league_id, user_id)
+  values (v_league_id, p_created_by);
+
+  return query
+    select l.id, l.name, l.invite_code, l.stake_amount
+    from leagues l where l.id = v_league_id;
+end;
+$$;
+
+create or replace function join_league(
+  p_invite_code text,
+  p_user_id uuid
+)
+returns table (
+  out_league_id uuid,
+  out_league_name text,
+  out_member_count bigint
+)
+language plpgsql
+as $$
+declare
+  v_league_id uuid;
+  v_max int;
+  v_count int;
+begin
+  -- find the league
+  select id, max_members into v_league_id, v_max
+  from leagues where invite_code = upper(p_invite_code);
+
+  if v_league_id is null then
+    raise exception 'League not found for invite code %', p_invite_code;
+  end if;
+
+  -- already a member?
+  if exists (
+    select 1 from league_members
+    where league_id = v_league_id and user_id = p_user_id
+  ) then
+    raise exception 'User is already a member of this league';
+  end if;
+
+  -- league full?
+  select count(*) into v_count
+  from league_members where league_id = v_league_id;
+
+  if v_count >= v_max then
+    raise exception 'League is full (% / % members)', v_count, v_max;
+  end if;
+
+  insert into league_members (league_id, user_id)
+  values (v_league_id, p_user_id);
+
+  return query
+    select l.id, l.name, (select count(*) from league_members m where m.league_id = l.id)
+    from leagues l where l.id = v_league_id;
+end;
+$$;
