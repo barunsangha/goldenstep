@@ -1,4 +1,5 @@
 import { Text, View, StyleSheet } from "react-native";
+import { colors } from "../../constants/theme";
 
 export default function PactScreen() {
   return (
@@ -13,11 +14,11 @@ export default function PactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#25292e",
+    backgroundColor: colors.black,
     justifyContent: "center",
     alignItems: "center",
   },
   text: {
-    color: "#fff",
-  }
+    color: colors.white,
+  },
 });
