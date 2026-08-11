@@ -13,7 +13,7 @@ Team name: Cerberus
 - Khai — Backend Developer
 - Barun — Frontend Developer
 - Jason — Frontend Developer
-- David — Designer
+- adam — Designer
 
 ## Product idea
 
