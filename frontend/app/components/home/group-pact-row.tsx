@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import Chevron from "../ui/chevron";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { groupPact } from "../../../constants/mock-home";
 import { colors } from "../../../constants/theme";
 
@@ -18,7 +18,7 @@ export default function GroupPactRow() {
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
       <Text style={styles.distance}>{distance}</Text>
-      <Chevron />
+      <Ionicons name="chevron-forward" size={16} color={colors.dim} />
     </Pressable>
   );
 }
