@@ -4,7 +4,8 @@
  * `draft` is local — the create screens mutate it freely and nothing is
  * written until commitDraft() calls create_solo_pact. `activePact` and
  * `today` come from the database via get_active_pact / get_pact_progress /
- * get_today_progress, and are refreshed on mount and after any write.
+ * get_today_progress, and are refreshed on mount, whenever the app returns
+ * to the foreground, and after any write.
  *
  * The ActivePact shape is kept identical to the old mock version on purpose,
  * so the Home components did not have to change.
@@ -19,6 +20,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 import {
   DEFAULT_DRAFT,
   type Metric,
@@ -149,8 +151,23 @@ export function PactProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /** Initial load. */
   useEffect(() => {
     refresh();
+  }, [refresh]);
+
+  /**
+   * Re-read whenever the app returns to the foreground.
+   *
+   * This is what makes a live demo work: walk away from the phone, come
+   * back, and the step count and pact progress are current. Without it
+   * the numbers are frozen at whatever they were on launch.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => sub.remove();
   }, [refresh]);
 
   const commitDraft = useCallback(async (): Promise<ActivePact | null> => {
