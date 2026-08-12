@@ -335,3 +335,8 @@ begin
     from leagues l where l.id = v_league_id;
 end;
 $$;
+-- ============================================
+-- Step 1: charities + new enum types
+-- ============================================
+
+
