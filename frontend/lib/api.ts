@@ -248,3 +248,75 @@ export async function syncSteps(args: {
 
   if (error) throw error;
 }
+/* ============================================================
+   APPEND THESE to the bottom of frontend/lib/api.ts
+   ============================================================ */
+
+/* ----------------------------------------------------------------- profile */
+
+export type Profile = {
+  name: string;
+  dailyStepGoal: number;
+  pactsTotal: number;
+  pactsCompleted: number;
+  totalForfeited: number;
+  totalKept: number;
+  stepsAllTime: number;
+};
+
+export async function getProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase.rpc("get_profile", {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+
+  const r = (data ?? [])[0];
+  if (!r) return null;
+
+  return {
+    name: r.out_name,
+    dailyStepGoal: r.out_daily_step_goal,
+    pactsTotal: Number(r.out_pacts_total),
+    pactsCompleted: Number(r.out_pacts_completed),
+    totalForfeited: Number(r.out_total_forfeited),
+    totalKept: Number(r.out_total_kept),
+    stepsAllTime: Number(r.out_steps_all_time),
+  };
+}
+
+export type PactHistoryRow = {
+  gameweekId: string;
+  name: string;
+  metric: Metric;
+  charityName: string | null;
+  goalAmount: number;
+  finalAmount: number;
+  progressPct: number;
+  stakeAmount: number;
+  forfeited: number;
+  endDate: string;
+  status: "active" | "closed";
+};
+
+export async function getPactHistory(
+  userId: string,
+): Promise<PactHistoryRow[]> {
+  const { data, error } = await supabase.rpc("get_pact_history", {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+
+  return (data ?? []).map((r: any) => ({
+    gameweekId: r.out_gameweek_id,
+    name: r.out_name,
+    metric: r.out_metric,
+    charityName: r.out_charity_name,
+    goalAmount: Number(r.out_goal_amount ?? 0),
+    finalAmount: Number(r.out_final_amount),
+    progressPct: Number(r.out_progress_pct ?? 0),
+    stakeAmount: Number(r.out_stake_amount),
+    forfeited: Number(r.out_forfeited),
+    endDate: r.out_end_date,
+    status: r.out_status,
+  }));
+}
