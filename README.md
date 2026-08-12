@@ -2,7 +2,7 @@
 
 Fantasy football, but you are the tracker.
 
-Goldenstep turns real running data into a Strava-powered fantasy league for university students, societies, and corporate teams. Players join a league, connect their Strava account, and compete over a weekly gameweek to cover the most distance. Each league has a small entry fee, and the top finishers share the prize pool at the end of the period.
+Goldenstep turns real running data into a Healthkit-powered fantasy league for university students, societies, and corporate teams. Players join a league, connect their Strava account, and compete over a weekly gameweek to cover the most distance. Each league has a small entry fee, and the top finishers share the prize pool at the end of the period.
 
 Built for the Trojan Horse Hackathon — August 12, 2026.
 
