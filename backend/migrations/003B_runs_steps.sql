@@ -1,4 +1,4 @@
-alter type run_source add value if not exists 'health';
+
 -- ============================================
 -- Step 3: runs accepts steps as well as distance
 -- ============================================
