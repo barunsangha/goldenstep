@@ -1,13 +1,36 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import ProgressBar from "../ui/progress-bar";
-import { soloPact } from "../../../constants/mock-home";
+import { usePact } from "../../../context/pact-store";
 import { colors } from "../../../constants/theme";
-import { money, num } from "../../../lib/format";
+import { money } from "../../../lib/format";
+import {
+  amountAtRisk,
+  daysLeftLabel,
+  pctComplete,
+  progressLabel,
+} from "../../../lib/pact-math";
 
 export default function ActivePactCard() {
   const router = useRouter();
-  const { label, daysLeft, title, current, goal, progress, atRisk } = soloPact;
+  const { activePact } = usePact();
+
+  if (!activePact) {
+    return (
+      <Pressable
+        onPress={() => router.push("/pact")}
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      >
+        <Text style={styles.emptyTitle}>No active pact</Text>
+        <Text style={styles.emptyBody}>
+          Put something on the line and your progress shows up here.
+        </Text>
+      </Pressable>
+    );
+  }
+
+  const { name, charityName, metric, current, goal, stake, days, createdAt } =
+    activePact;
 
   return (
     <Pressable
@@ -15,16 +38,18 @@ export default function ActivePactCard() {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.daysLeft}>{daysLeft}</Text>
+        <Text style={styles.label}>Solo · {charityName}</Text>
+        <Text style={styles.daysLeft}>{daysLeftLabel(createdAt, days)}</Text>
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <ProgressBar progress={progress} top={18} />
+      <Text style={styles.title}>{name}</Text>
+      <ProgressBar progress={pctComplete(current, goal)} top={18} />
       <View style={styles.footer}>
         <Text style={styles.progress}>
-          {num(current)} of {num(goal)}
+          {progressLabel(metric, current, goal)}
         </Text>
-        <Text style={styles.atRisk}>{money(atRisk)} at risk</Text>
+        <Text style={styles.atRisk}>
+          {money(amountAtRisk(stake, current, goal))} at risk
+        </Text>
       </View>
     </Pressable>
   );
@@ -75,5 +100,16 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: colors.orange,
     fontWeight: "500",
+  },
+  emptyTitle: {
+    fontSize: 15.5,
+    fontWeight: "400",
+    color: colors.white,
+  },
+  emptyBody: {
+    fontSize: 13,
+    color: colors.gray,
+    lineHeight: 20,
+    marginTop: 7,
   },
 });

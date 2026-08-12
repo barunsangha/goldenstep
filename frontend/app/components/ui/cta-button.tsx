@@ -5,6 +5,7 @@ type CtaButtonProps = {
   children: string;
   onPress?: () => void;
   variant?: "primary" | "ghost";
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -12,17 +13,20 @@ export default function CtaButton({
   children,
   onPress,
   variant = "primary",
+  disabled = false,
   style,
 }: CtaButtonProps) {
   const isPrimary = variant === "primary";
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.base,
         isPrimary ? styles.primary : styles.ghost,
-        pressed && styles.pressed,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
         style,
       ]}
     >
@@ -48,6 +52,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  disabled: {
+    opacity: 0.35,
   },
   text: {
     fontSize: 15.5,

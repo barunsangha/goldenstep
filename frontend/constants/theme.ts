@@ -11,6 +11,13 @@ export const colors = {
   greenDark: "#00160C",
   orange: "#FF8534",
   progressDim: "#565659",
+  /** Step indicator: completed vs remaining. */
+  stepOn: "#6E6E72",
+  stepOff: "#2E2E32",
+  /** Selected face of a segmented control. */
+  segmentActive: "#3A3A3E",
+  /** Outline of an unselected tick. */
+  tickBorder: "#46464A",
 } as const;
 
 export const spacing = {

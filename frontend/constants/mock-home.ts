@@ -1,20 +1,13 @@
-export const todayData = {
-  steps: 8412,
-  goal: 12500,
-  remaining: 4088,
-  atRisk: 1.2,
-  progress: 67,
-};
+/**
+ * Remaining stand-in data for Home.
+ *
+ * The solo pact that used to live here now comes from the pact store, so
+ * creating one updates the home screen. What is left is the personal daily
+ * target and the group pact, which has no creation flow yet.
+ */
 
-export const soloPact = {
-  label: "Solo · Red Cross",
-  daysLeft: "3 days left",
-  title: "50,000 steps this week",
-  current: 37000,
-  goal: 50000,
-  progress: 74,
-  atRisk: 13,
-};
+/** Your own daily step target, independent of any pact. */
+export const DAILY_STEP_GOAL = 12500;
 
 export const groupPact = {
   title: "July 100 km club",

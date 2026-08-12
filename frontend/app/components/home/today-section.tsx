@@ -1,12 +1,24 @@
 import { View, Text, StyleSheet } from "react-native";
 import Eyebrow from "../ui/eyebrow";
 import ProgressBar from "../ui/progress-bar";
-import { todayData } from "../../../constants/mock-home";
+import { usePact } from "../../../context/pact-store";
+import { DAILY_STEP_GOAL } from "../../../constants/mock-home";
 import { colors } from "../../../constants/theme";
 import { money, num } from "../../../lib/format";
+import { getStepsToday } from "../../../lib/health";
+import { pctComplete } from "../../../lib/pact-math";
 
 export default function TodaySection() {
-  const { steps, remaining, atRisk, progress } = todayData;
+  const { activePact } = usePact();
+
+  const steps = getStepsToday();
+  const remaining = Math.max(DAILY_STEP_GOAL - steps, 0);
+  const progress = pctComplete(steps, DAILY_STEP_GOAL);
+
+  /** The slice of the stake riding on today, unearned so far. */
+  const atRisk = activePact
+    ? (activePact.stake / activePact.days) * (1 - progress / 100)
+    : null;
 
   return (
     <View style={styles.container}>
@@ -17,8 +29,12 @@ export default function TodaySection() {
       </View>
       <ProgressBar progress={progress} top={20} />
       <View style={styles.footer}>
-        <Text style={styles.remaining}>{num(remaining)} to go today</Text>
-        <Text style={styles.atRisk}>{money(atRisk)} at risk</Text>
+        <Text style={styles.remaining}>
+          {remaining > 0 ? `${num(remaining)} to go today` : "Daily target hit"}
+        </Text>
+        {atRisk !== null ? (
+          <Text style={styles.atRisk}>{money(atRisk)} at risk</Text>
+        ) : null}
       </View>
     </View>
   );
