@@ -5,16 +5,19 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Eyebrow from "../components/ui/eyebrow";
 import ProgressBar from "../components/ui/progress-bar";
+import Avatar, { SEEDS } from "../components/ui/avatar";
 import { colors, spacing } from "../../constants/theme";
 import { money, num } from "../../lib/format";
 import { getCurrentUserId } from "../../lib/session";
 import {
   getProfile,
   getPactHistory,
+  setAvatar,
   type Profile,
   type PactHistoryRow,
 } from "../../lib/api";
@@ -24,6 +27,7 @@ export default function ProfileScreen() {
   const [history, setHistory] = useState<PactHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const load = useCallback(async () => {
     const userId = getCurrentUserId();
@@ -46,12 +50,20 @@ export default function ProfileScreen() {
     load();
   }, [load]);
 
-  const initials = (profile?.name ?? "?")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const chooseAvatar = useCallback(
+    async (seed: string) => {
+      if (!profile) return;
+      // Optimistic — the picker should feel instant.
+      setProfile({ ...profile, avatar: seed });
+      try {
+        await setAvatar(getCurrentUserId(), seed);
+      } catch (e: any) {
+        setError(String(e?.message ?? e));
+        load();
+      }
+    },
+    [profile, load],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -67,25 +79,46 @@ export default function ProfileScreen() {
         }
       >
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.initials}>{initials}</Text>
-          </View>
+          <Pressable onPress={() => setPicking((p) => !p)} hitSlop={8}>
+            <Avatar
+              name={profile?.name ?? "?"}
+              seed={profile?.avatar}
+              size={62}
+            />
+          </Pressable>
           <View style={styles.headerText}>
             <Text style={styles.name}>{profile?.name ?? "—"}</Text>
             <Text style={styles.sub}>
               {profile ? `${num(profile.dailyStepGoal)} steps a day` : ""}
             </Text>
+            <Pressable onPress={() => setPicking((p) => !p)} hitSlop={8}>
+              <Text style={styles.change}>
+                {picking ? "Done" : "Change look"}
+              </Text>
+            </Pressable>
           </View>
         </View>
+
+        {picking ? (
+          <View style={styles.picker}>
+            {SEEDS.map((s) => (
+              <Pressable key={s} onPress={() => chooseAvatar(s)} hitSlop={4}>
+                <Avatar
+                  name={profile?.name ?? "?"}
+                  seed={s}
+                  size={44}
+                  selected={profile?.avatar === s}
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Eyebrow>Record</Eyebrow>
         <View style={styles.statRow}>
-          <Stat
-            label="Pacts"
-            value={profile ? String(profile.pactsTotal) : "—"}
-          />
+          <Stat label="Pacts" value={profile ? String(profile.pactsTotal) : "—"} />
           <Stat
             label="Finished"
             value={profile ? String(profile.pactsCompleted) : "—"}
@@ -182,10 +215,7 @@ function Stat({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.black },
-  content: {
-    paddingHorizontal: spacing.screen,
-    paddingBottom: 40,
-  },
+  content: { paddingHorizontal: spacing.screen, paddingBottom: 40 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -193,18 +223,16 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 4,
   },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  initials: { color: colors.white, fontSize: 19, fontWeight: "400" },
   headerText: { flex: 1 },
   name: { color: colors.white, fontSize: 21, fontWeight: "400" },
   sub: { color: colors.gray, fontSize: 13, marginTop: 3 },
+  change: { color: colors.green, fontSize: 12, marginTop: 6 },
+  picker: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingVertical: 16,
+  },
   error: { color: colors.orange, fontSize: 12.5, marginTop: 10 },
   statRow: { flexDirection: "row", gap: 10 },
   stat: {
@@ -222,11 +250,7 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   statLabel: { color: colors.dim, fontSize: 10, marginTop: 5 },
-  bigCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-  },
+  bigCard: { backgroundColor: colors.card, borderRadius: 16, padding: 20 },
   bigValue: {
     color: colors.white,
     fontSize: 38,

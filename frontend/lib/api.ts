@@ -257,6 +257,7 @@ export async function syncSteps(args: {
 export type Profile = {
   name: string;
   dailyStepGoal: number;
+  avatar : string | null;
   pactsTotal: number;
   pactsCompleted: number;
   totalForfeited: number;
@@ -275,6 +276,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
   return {
     name: r.out_name,
+    avatar : r.out_avatar,
     dailyStepGoal: r.out_daily_step_goal,
     pactsTotal: Number(r.out_pacts_total),
     pactsCompleted: Number(r.out_pacts_completed),
@@ -319,4 +321,14 @@ export async function getPactHistory(
     endDate: r.out_end_date,
     status: r.out_status,
   }));
+  
+}
+
+export async function setAvatar(userId: string, seed: string) {
+  const { data, error } = await supabase.rpc("set_avatar", {
+    p_user_id: userId,
+    p_seed: seed,
+  });
+  if (error) throw error;
+  return (data ?? [])[0]?.out_avatar ?? null;
 }
