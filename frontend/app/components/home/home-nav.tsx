@@ -8,7 +8,7 @@ export default function HomeNav() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>GoldenStep</Text>
+      <Text style={styles.title}>The PACT</Text>
       <Pressable
         onPress={() => router.push("/profile")}
         hitSlop={8}

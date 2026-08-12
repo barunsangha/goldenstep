@@ -3,19 +3,6 @@ import { Tabs, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors } from "../../constants/theme";
 
-function RunFab() {
-  const router = useRouter();
-
-  return (
-    <Pressable
-      onPress={() => router.push("/run")}
-      style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-    >
-      <Ionicons name="walk" size={22} color={colors.greenDark} />
-    </Pressable>
-  );
-}
-
 export default function TabLayout() {
   return (
     <Tabs
@@ -28,8 +15,8 @@ export default function TabLayout() {
           borderTopColor: colors.line,
           borderTopWidth: 1,
           paddingTop: 11,
-          paddingBottom: 6,
-          height: 60,
+          paddingBottom: 0,
+          height: 80,
         },
         tabBarLabelStyle: {
           fontSize: 9.5,
@@ -66,11 +53,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="run"
         options={{
-          title: "",
-          tabBarButton: () => (
-            <View style={styles.fabContainer}>
-              <RunFab />
-            </View>
+          title: "Run",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "walk-sharp" : "walk-outline"}
+              color={color}
+              size={23}
+            />
           ),
         }}
       />
@@ -97,23 +86,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  fabContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  fab: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.green,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -11,
-  },
-  fabPressed: {
-    opacity: 0.9,
-  },
-});
