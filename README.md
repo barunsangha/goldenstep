@@ -34,7 +34,7 @@ Goldenstep creates a real-world fitness competition with the spirit of fantasy s
 | App | Expo (React Native) |
 | Backend | Node.js + Express, or Supabase |
 | Database | Postgres |
-| Auth | Strava OAuth 2 |
+| Auth | Healthkid |
 | Realtime | Supabase Realtime |
 | Recap export | react-native-view-shot + expo-sharing |
 
@@ -92,12 +92,16 @@ SUPABASE_ANON_KEY=
 npx expo start
 ```
 
-Scan the QR code with the Expo Go app on your phone. For Strava login, use a development build instead of the default Expo Go flow.
+Scan the QR code with the Expo Go app on your phone. For healthkid login, use a development build instead of the default Expo Go flow.
 
 ## Project structure
 
 ```text
-.
+backend
+├── database/
+├── migration
+
+frontend.
 ├── app/
 ├── components/
 ├── lib/
