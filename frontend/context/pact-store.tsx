@@ -1,27 +1,40 @@
 /**
- * In-memory state for the pact flow.
+ * Pact state, backed by Supabase.
  *
- * `draft` is what the create screens mutate; `activePact` is what Home reads.
- * Nothing here talks to Supabase yet — commitDraft() is the single place that
- * will call the create_solo_pact RPC once the backend is wired, and its shape
- * deliberately mirrors that function's parameters.
+ * `draft` is local — the create screens mutate it freely and nothing is
+ * written until commitDraft() calls create_solo_pact. `activePact` and
+ * `today` come from the database via get_active_pact / get_pact_progress /
+ * get_today_progress, and are refreshed on mount and after any write.
+ *
+ * The ActivePact shape is kept identical to the old mock version on purpose,
+ * so the Home components did not have to change.
  */
 
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import {
-  CHARITIES,
   DEFAULT_DRAFT,
   type Metric,
   type PactMode,
 } from "../constants/pact-config";
-import { pactName } from "../lib/pact-math";
+import { pactName, goalToApiUnits } from "../lib/pact-math";
+import { getCurrentUserId } from "../lib/session";
+import {
+  createSoloPact,
+  getActivePact,
+  getPactProgress,
+  getTodayProgress,
+  syncSteps,
+  type TodayProgress,
+} from "../lib/api";
+import { getStepsToday, todayISO } from "../lib/health";
 
 export type PactDraft = {
   mode: PactMode;
@@ -33,34 +46,21 @@ export type PactDraft = {
 };
 
 export type ActivePact = {
+  /** The gameweek_id — what every progress RPC needs. */
   id: string;
+  leagueId: string;
   name: string;
   mode: PactMode;
   metric: Metric;
+  /** In UI units: steps, or KILOMETRES for distance pacts. */
   goal: number;
   days: number;
+  daysLeft: number;
   charityName: string;
   stake: number;
-  /** Progress so far, in the pact's own metric. */
   current: number;
+  atRisk: number;
   createdAt: number;
-};
-
-/**
- * Seeded so Home has something to show on first launch. Reproduces the
- * original mock: 37,000 of 50,000 steps = 74%, $13 of a $50 stake at risk.
- */
-const SEED_PACT: ActivePact = {
-  id: "seed",
-  name: "50,000 steps this week",
-  mode: "solo",
-  metric: "steps",
-  goal: 50000,
-  days: 7,
-  charityName: "Red Cross",
-  stake: 50,
-  current: 37000,
-  createdAt: Date.now() - 4 * 86_400_000,
 };
 
 type PactContextValue = {
@@ -68,14 +68,25 @@ type PactContextValue = {
   updateDraft: (patch: Partial<PactDraft>) => void;
   resetDraft: (mode?: PactMode) => void;
   activePact: ActivePact | null;
-  commitDraft: () => ActivePact;
+  today: TodayProgress | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  commitDraft: () => Promise<ActivePact | null>;
 };
 
 const PactContext = createContext<PactContextValue | null>(null);
 
+/** metres -> km for display; steps pass through. */
+const toUiUnits = (metric: Metric, v: number) =>
+  metric === "steps" ? v : v / 1000;
+
 export function PactProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<PactDraft>(DEFAULT_DRAFT);
-  const [activePact, setActivePact] = useState<ActivePact | null>(SEED_PACT);
+  const [activePact, setActivePact] = useState<ActivePact | null>(null);
+  const [today, setToday] = useState<TodayProgress | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const updateDraft = useCallback((patch: Partial<PactDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -85,27 +96,109 @@ export function PactProvider({ children }: { children: ReactNode }) {
     setDraft({ ...DEFAULT_DRAFT, mode });
   }, []);
 
-  const commitDraft = useCallback(() => {
-    const charity = CHARITIES.find((c) => c.id === draft.charityId);
-    const pact: ActivePact = {
-      id: `pact-${Date.now()}`,
-      name: pactName(draft.metric, draft.goal, draft.days),
-      mode: draft.mode,
-      metric: draft.metric,
-      goal: draft.goal,
-      days: draft.days,
-      charityName: charity?.name ?? "charity",
-      stake: draft.stake,
-      current: 0,
-      createdAt: Date.now(),
-    };
-    setActivePact(pact);
-    return pact;
-  }, [draft]);
+  const refresh = useCallback(async () => {
+    const userId = getCurrentUserId();
+    setError(null);
+
+    try {
+      const pact = await getActivePact(userId);
+
+      if (!pact) {
+        setActivePact(null);
+        setToday(await getTodayProgress(userId));
+        return;
+      }
+
+      // Push today's steps in before reading progress back, so the
+      // numbers on screen include the walk that just happened.
+      const steps = await getStepsToday();
+      try {
+        await syncSteps({
+          userId,
+          gameweekId: pact.gameweekId,
+          steps,
+          date: todayISO(),
+        });
+      } catch {
+        // A failed sync should not blank the screen — show stale data.
+      }
+
+      const progress = await getPactProgress(pact.gameweekId, userId);
+
+      setActivePact({
+        id: pact.gameweekId,
+        leagueId: pact.leagueId,
+        name: pact.name,
+        mode: pact.pactType,
+        metric: pact.metric,
+        goal: toUiUnits(pact.metric, pact.goalAmount),
+        days: pact.daysTotal,
+        daysLeft: progress?.daysLeft ?? 0,
+        charityName: pact.charityName ?? "charity",
+        stake: pact.stakeAmount,
+        current: toUiUnits(pact.metric, progress?.currentAmount ?? 0),
+        atRisk: progress?.atRisk ?? pact.stakeAmount,
+        createdAt: new Date(pact.startDate).getTime(),
+      });
+
+      setToday(await getTodayProgress(userId));
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const commitDraft = useCallback(async (): Promise<ActivePact | null> => {
+    const userId = getCurrentUserId();
+    setError(null);
+
+    try {
+      await createSoloPact({
+        userId,
+        name: pactName(draft.metric, draft.goal, draft.days),
+        metric: draft.metric,
+        goalAmount: goalToApiUnits(draft.metric, draft.goal),
+        stakeAmount: draft.stake,
+        charityId: draft.charityId, // must be a real uuid
+        days: draft.days,
+      });
+
+      await refresh();
+      return activePact;
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+      return null;
+    }
+  }, [draft, refresh, activePact]);
 
   const value = useMemo(
-    () => ({ draft, updateDraft, resetDraft, activePact, commitDraft }),
-    [draft, updateDraft, resetDraft, activePact, commitDraft],
+    () => ({
+      draft,
+      updateDraft,
+      resetDraft,
+      activePact,
+      today,
+      loading,
+      error,
+      refresh,
+      commitDraft,
+    }),
+    [
+      draft,
+      updateDraft,
+      resetDraft,
+      activePact,
+      today,
+      loading,
+      error,
+      refresh,
+      commitDraft,
+    ],
   );
 
   return <PactContext.Provider value={value}>{children}</PactContext.Provider>;

@@ -4,16 +4,19 @@ import ProgressBar from "../ui/progress-bar";
 import { usePact } from "../../../context/pact-store";
 import { colors } from "../../../constants/theme";
 import { money } from "../../../lib/format";
-import {
-  amountAtRisk,
-  daysLeftLabel,
-  pctComplete,
-  progressLabel,
-} from "../../../lib/pact-math";
+import { pctComplete, progressLabel } from "../../../lib/pact-math";
 
 export default function ActivePactCard() {
   const router = useRouter();
-  const { activePact } = usePact();
+  const { activePact, loading } = usePact();
+
+  if (loading) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.emptyBody}>Loading…</Text>
+      </View>
+    );
+  }
 
   if (!activePact) {
     return (
@@ -29,7 +32,7 @@ export default function ActivePactCard() {
     );
   }
 
-  const { name, charityName, metric, current, goal, stake, days, createdAt } =
+  const { name, charityName, metric, current, goal, daysLeft, atRisk } =
     activePact;
 
   return (
@@ -39,7 +42,9 @@ export default function ActivePactCard() {
     >
       <View style={styles.header}>
         <Text style={styles.label}>Solo · {charityName}</Text>
-        <Text style={styles.daysLeft}>{daysLeftLabel(createdAt, days)}</Text>
+        <Text style={styles.daysLeft}>
+          {daysLeft === 0 ? "Ends today" : `${daysLeft} days left`}
+        </Text>
       </View>
       <Text style={styles.title}>{name}</Text>
       <ProgressBar progress={pctComplete(current, goal)} top={18} />
@@ -47,27 +52,16 @@ export default function ActivePactCard() {
         <Text style={styles.progress}>
           {progressLabel(metric, current, goal)}
         </Text>
-        <Text style={styles.atRisk}>
-          {money(amountAtRisk(stake, current, goal))} at risk
-        </Text>
+        <Text style={styles.atRisk}>{money(atRisk)} at risk</Text>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-  },
-  pressed: {
-    opacity: 0.92,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 20 },
+  pressed: { opacity: 0.92 },
+  header: { flexDirection: "row", alignItems: "baseline" },
   label: {
     fontSize: 11,
     fontWeight: "500",
@@ -75,11 +69,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: colors.dim,
   },
-  daysLeft: {
-    marginLeft: "auto",
-    fontSize: 12,
-    color: colors.dim,
-  },
+  daysLeft: { marginLeft: "auto", fontSize: 12, color: colors.dim },
   title: {
     fontSize: 18,
     fontWeight: "400",
@@ -92,20 +82,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 12,
   },
-  progress: {
-    fontSize: 12.5,
-    color: colors.gray,
-  },
-  atRisk: {
-    fontSize: 12.5,
-    color: colors.orange,
-    fontWeight: "500",
-  },
-  emptyTitle: {
-    fontSize: 15.5,
-    fontWeight: "400",
-    color: colors.white,
-  },
+  progress: { fontSize: 12.5, color: colors.gray },
+  atRisk: { fontSize: 12.5, color: colors.orange, fontWeight: "500" },
+  emptyTitle: { fontSize: 15.5, fontWeight: "400", color: colors.white },
   emptyBody: {
     fontSize: 13,
     color: colors.gray,
