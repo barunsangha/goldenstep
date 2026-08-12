@@ -74,19 +74,13 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="feed"
-        options={{
-          title: "Feed",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "newspaper" : "newspaper-outline"}
-              color={color}
-              size={23}
-            />
-          ),
-        }}
-      />
+      {/*
+        Feed is hidden, not deleted. There is no social graph in the schema
+        — no friends, no follows, no activity table — so a Feed tab would
+        need a whole feature behind it, not just a screen. href: null keeps
+        the route working while removing it from the tab bar.
+      */}
+      <Tabs.Screen name="feed" options={{ href: null }} />
       <Tabs.Screen
         name="profile"
         options={{
