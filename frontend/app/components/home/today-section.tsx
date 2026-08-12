@@ -2,29 +2,22 @@ import { View, Text, StyleSheet } from "react-native";
 import Eyebrow from "../ui/eyebrow";
 import ProgressBar from "../ui/progress-bar";
 import { usePact } from "../../../context/pact-store";
-import { DAILY_STEP_GOAL } from "../../../constants/mock-home";
 import { colors } from "../../../constants/theme";
 import { money, num } from "../../../lib/format";
-import { getStepsToday } from "../../../lib/health";
-import { pctComplete } from "../../../lib/pact-math";
 
 export default function TodaySection() {
-  const { activePact } = usePact();
+  const { today, loading } = usePact();
 
-  const steps = getStepsToday();
-  const remaining = Math.max(DAILY_STEP_GOAL - steps, 0);
-  const progress = pctComplete(steps, DAILY_STEP_GOAL);
-
-  /** The slice of the stake riding on today, unearned so far. */
-  const atRisk = activePact
-    ? (activePact.stake / activePact.days) * (1 - progress / 100)
-    : null;
+  const steps = today?.steps ?? 0;
+  const remaining = today?.remaining ?? 0;
+  const progress = today?.progressPct ?? 0;
+  const atRisk = today?.atRisk ?? null;
 
   return (
     <View style={styles.container}>
       <Eyebrow top={0}>Today</Eyebrow>
       <View style={styles.countRow}>
-        <Text style={styles.count}>{num(steps)}</Text>
+        <Text style={styles.count}>{loading ? "—" : num(steps)}</Text>
         <Text style={styles.unit}>steps</Text>
       </View>
       <ProgressBar progress={progress} top={20} />
@@ -41,10 +34,7 @@ export default function TodaySection() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 20,
-    paddingBottom: 34,
-  },
+  container: { paddingVertical: 20, paddingBottom: 34 },
   countRow: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -59,23 +49,12 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontVariant: ["tabular-nums"],
   },
-  unit: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: colors.gray,
-  },
+  unit: { fontSize: 14, fontWeight: "400", color: colors.gray },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 12,
   },
-  remaining: {
-    fontSize: 12.5,
-    color: colors.gray,
-  },
-  atRisk: {
-    fontSize: 12.5,
-    color: colors.orange,
-    fontWeight: "500",
-  },
+  remaining: { fontSize: 12.5, color: colors.gray },
+  atRisk: { fontSize: 12.5, color: colors.orange, fontWeight: "500" },
 });
