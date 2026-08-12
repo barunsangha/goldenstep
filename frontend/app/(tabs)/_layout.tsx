@@ -1,18 +1,39 @@
-import { Tabs } from "expo-router";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Tabs, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { colors } from "../../constants/theme";
+
+function RunFab() {
+  const router = useRouter();
+
+  return (
+    <Pressable
+      onPress={() => router.push("/run")}
+      style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+    >
+      <Ionicons name="walk" size={22} color={colors.greenDark} />
+    </Pressable>
+  );
+}
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#ffd33d",
-        headerStyle: {
-          backgroundColor: "#25292e",
-        },
-        headerShadowVisible: false,
-        headerTintColor: "#fff",
+        headerShown: false,
+        tabBarActiveTintColor: colors.green,
+        tabBarInactiveTintColor: colors.dim,
         tabBarStyle: {
-          backgroundColor: "#25292e",
+          backgroundColor: colors.black,
+          borderTopColor: colors.line,
+          borderTopWidth: 1,
+          paddingTop: 11,
+          paddingBottom: 6,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 9.5,
+          fontWeight: "400",
         },
       }}
     >
@@ -24,7 +45,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "home-sharp" : "home-outline"}
               color={color}
-              size={24}
+              size={23}
             />
           ),
         }}
@@ -32,16 +53,36 @@ export default function TabLayout() {
       <Tabs.Screen
         name="pact"
         options={{
-          title: "Pact",
+          title: "Pacts",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={
-                focused
-                  ? "trophy-sharp"
-                  : "trophy-outline"
-              }
+              name={focused ? "trophy-sharp" : "trophy-outline"}
               color={color}
-              size={24}
+              size={23}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="run"
+        options={{
+          title: "",
+          tabBarButton: () => (
+            <View style={styles.fabContainer}>
+              <RunFab />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
+          title: "Feed",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "newspaper" : "newspaper-outline"}
+              color={color}
+              size={23}
             />
           ),
         }}
@@ -54,7 +95,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "person-sharp" : "person-outline"}
               color={color}
-              size={24}
+              size={23}
             />
           ),
         }}
@@ -62,3 +103,23 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  fabContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  fab: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.green,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -11,
+  },
+  fabPressed: {
+    opacity: 0.9,
+  },
+});
